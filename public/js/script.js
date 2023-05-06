@@ -10,6 +10,26 @@ let updateexpensebtn = document.getElementById("updateexpensebtn");
 
 
 
+//jwt token parser
+function parseJwt(token) {
+  var base64Url = token.split('.')[1];
+  var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+  var jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function (c) {
+    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+  }).join(''));
+  return JSON.parse(jsonPayload);
+}
+
+
+
+//Premium user Message:
+function premiumUserMsg() {
+  document.getElementById("buyPremiumBtn").remove();
+  document.getElementById("memtype").innerText = "Premium Member";
+}
+
+
+
 window.addEventListener("DOMContentLoaded", async () => {
   try {
     const token = localStorage.getItem('token')
@@ -26,7 +46,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     }
     document.getElementById("loggedName").innerHTML = `Welcome<span class=" font-extrabold text-[#002D74]"> ${tokenDecoded.name}</span>`;
 
-    let pageLimit = parseInt(localStorage.getItem("pageLimit")) || 5;
+    let pageLimit = parseInt(localStorage.getItem("pageLimit")) || 8;
     let currentPage = 1;
     let prevPageButton = document.getElementById("prevPage");
     let nextPageButton = document.getElementById("nextPage");
@@ -36,7 +56,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 
     pageLimitInput.value = pageLimit;
     let expensesToDisplay;
-    let totalRows;
+    let totalRow;
     async function displayExpenses() {
       document.getElementById("addedexpenselist").innerHTML = "";
       const res = await axios.get(`${publicIp}/admin/getAllExpenses`, {
@@ -45,7 +65,7 @@ window.addEventListener("DOMContentLoaded", async () => {
       });
 
       expensesToDisplay = res.data.allExpenses;
-      totalRows=res.data.totalRow;
+      totalRow = res.data.totalRow;
       expensesToDisplay.forEach(expenseItem => {
         showexpenses(expenseItem);
       })
@@ -71,14 +91,14 @@ window.addEventListener("DOMContentLoaded", async () => {
     });
     savePageLimitButton.addEventListener("click", function () {
       let newPageLimit = parseInt(pageLimitInput.value);
-      if (newPageLimit > 0 && newPageLimit <= totalRows) {
+      if (newPageLimit > 0 && newPageLimit <= totalRow) {
         pageLimit = newPageLimit;
         localStorage.setItem("pageLimit", pageLimit);
         currentPage = 1;
         displayExpenses();
       }
       else {
-        alert(`Expense range allowed is minimum: 1 and maximum: ${totalRows}`)
+        alert(`Expense range allowed is minimum: 1 and maximum: ${expensesToDisplay.length}`)
         return;
       }
     });
@@ -95,7 +115,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 
 
 
-
+//@desc: show expenses on screen
 async function showexpenses(expenseItem) {
   try {
     document.getElementById("addexpenseinput").value = "";
@@ -103,6 +123,7 @@ async function showexpenses(expenseItem) {
     document.getElementById("addexpensecategory").value = "";
     document.getElementById('expenseRadio').checked = false;
     document.getElementById('incomeRadio').checked = false;
+
     const d = new Date(`${expenseItem.updatedAt}`);
     let expen = '';
     let incom = '';
@@ -129,7 +150,7 @@ async function showexpenses(expenseItem) {
     </svg>
     </button>
     
-    <button onclick="deleteexpense('${expenseItem._id}')" class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-3 mt-1  rounded  "><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+    <button onclick="deleteexpense('${expenseItem._id}','${expenseItem.amount}','${expenseItem.amountType}')" class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-3 mt-1  rounded  "><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
       <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m6 4.125l2.25 2.25m0 0l2.25 2.25M12 13.875l2.25-2.25M12 13.875l-2.25 2.25M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
     </svg>
     </button>
@@ -170,25 +191,6 @@ async function saveToDb(event) {
 
 
 
-//jwt token parser
-function parseJwt(token) {
-  var base64Url = token.split('.')[1];
-  var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-  var jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function (c) {
-    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-  }).join(''));
-  return JSON.parse(jsonPayload);
-}
-
-
-
-//Premium user Message:
-function premiumUserMsg() {
-  document.getElementById("buyPremiumBtn").remove();
-  document.getElementById("memtype").innerText = "Premium Member";
-}
-
-
 //show leaderBoard
 let tableVisible = false;
 function showLeaderBoard() {
@@ -212,7 +214,7 @@ function showLeaderBoard() {
         leaderBoardData.data.forEach(leadersDetails => {
           leaderBoardElement.innerHTML += `<tr class=" text-sm hover:bg-gray-100">
           <td class="py-2 px-3 border-b border-gray-400">${leadersDetails.name}</td>
-          <td class="py-2 px-3 border-b border-gray-400"><span class="font-bold">&#x20b9; </span>${leadersDetails.aggregate_amount}</td>
+          <td class="py-2 px-3 border-b border-gray-400"><span class="font-bold">&#x20b9; </span>${leadersDetails.totalExpense}</td>
         </tr>`
         });;
         tableVisible = true;
@@ -245,11 +247,10 @@ function showDownloadsHistory() {
     try {
       const token = localStorage.getItem('token')
       const prevDownloadsData = await axios.get(`${publicIp}/premium/showPrevDownloads`, { headers: { "Authorization": token } });
-      var downloadedElement = document.getElementById("addedDownloadlist")
+      let downloadedElement = document.getElementById("addedDownloadlist")
       if (!downloadsView) {
         document.getElementById("downloadsTable").classList.toggle("hidden");
         prevDownloadsData.data.prevDownloads.forEach(downloadsDetail => {
-          console.log("Line 250 getting downloadsDetail:script.js ",{downloadsDetail})
           const d = new Date(`${downloadsDetail.createdAt}`);
           downloadedElement.innerHTML += `<tr class=" text-sm hover:bg-gray-100">
           <td class="py-2 px-3 border-b border-gray-400"><a href='${downloadsDetail.fileUrl}'>${d.toUTCString()}</a></td>
@@ -285,19 +286,25 @@ function editexpense(expId, expAmount, expDesc, expCat, expType) {
   removeExpenseFromScreen(expId);
   document.querySelector("#addexpensebtn").style.display = "none";
   document.querySelector("#updateexpensebtn").style.display = "block";
-  console.log("line 286 on edit click id: ",expId)
-  updateexpensebtn.setAttribute("onclick", `updateUser('${expId}')`);
+  updateexpensebtn.setAttribute("onclick", `updateUser('${expId}', '${expAmount}','${expType}')`);
 }
 
 
 
 //update in Db
-async function updateUser(expId) {
+async function updateUser(expId, expAmount, expType) {
   let amount = addexpenseinput.value;
   let description = addexpensedescription.value;
   let category = addexpensecategory.value;
   let amountType = document.querySelector('input[name="amountType"]:checked').value;
-  const obj = { amount, description, category, amountType };
+  let changedAmount;
+  if (expType == amountType) {
+    changedAmount = parseInt(amount) - parseInt(expAmount);
+  }
+  else {
+    changedAmount = -parseInt(expAmount);
+  }
+  const obj = { amount, description, category, amountType, changedAmount, expType };
   const token = localStorage.getItem('token')
   try {
     const res1 = await axios.put(`${publicIp}/admin/updateExpense/${expId}`, obj, { headers: { "Authorization": token } });
@@ -312,7 +319,6 @@ async function updateUser(expId) {
       document.getElementById("success-alert").innerText = "Expense Updation Successful.";
     }
     else {
-      console.log("error");
       window.location.reload();
     }
   }
@@ -329,7 +335,7 @@ async function updateUser(expId) {
       return;
     }
     else {
-     window.location.reload();
+      window.location.reload();
     }
   }
   catch (err) {
@@ -355,10 +361,10 @@ async function removeExpenseFromScreen(expId) {
 
 
 // deleteexpense from db
-async function deleteexpense(expId) {
+async function deleteexpense(expId, expAmount, expType) {
   try {
-    const token = localStorage.getItem('token')
-    await axios.delete(`${publicIp}/admin/deleteExpense/${expId}`, { headers: { "Authorization": token } })
+    const token = localStorage.getItem('token');
+    await axios.delete(`${publicIp}/admin/deleteExpense/${expId}?expAmount=${expAmount}&expType=${expType}`, { headers: { "Authorization": token } })
     removeExpenseFromScreen(expId);
     document.getElementById("deletion-alert").innerText = "Expense deleted Successfully!";
     awakeDeletedAlert();
@@ -377,11 +383,11 @@ document.getElementById("buyPremiumBtn").addEventListener("click", async functio
   try {
     const token = localStorage.getItem('token');
     const response = await axios.get(`${publicIp}/purchase/premiumMember`, { headers: { "Authorization": token } });
-    console.log("payment line380: ",{response})
+    
     // Create the payment handler function
-    const paymentcreds = {
+    var paymentcreds = {
       "key": response.data.key_id,
-      "order_id": response.data.order._id,
+      "order_id": response.data.order.id,
       "handler": async function (response) {
         try {
           // Make a POST request to update the transaction status
@@ -389,7 +395,6 @@ document.getElementById("buyPremiumBtn").addEventListener("click", async functio
             order_id: paymentcreds.order_id,
             payment_id: response.razorpay_payment_id,
           }, { headers: { "Authorization": token } });
-          console.log("payment line392: ",{res})
 
           premiumUserMsg();
           alert('Your Premium Membership is now active');

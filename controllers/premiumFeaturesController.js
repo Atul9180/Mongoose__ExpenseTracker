@@ -1,6 +1,6 @@
 const Expense = require("../model/expensesModel");
 const User = require("../model/usersModel");
-const DownloadedReport = require('../model/downloadedReportsModel')
+const Downloads = require('../model/downloadedReportsModel')
 const { uploadToS3 } = require('../services/awsS3service')
 
 
@@ -8,48 +8,31 @@ const { uploadToS3 } = require('../services/awsS3service')
 //@desc: get leaderBoard
 const getLeadersData = async (req, res) => {
   try {
-    const leadersExpenses = await User.aggregate([
-      {
-        $lookup: {
-          from: 'expenses',
-          localField: '_id',
-          foreignField: 'usersTbId',
-          as: 'expenses',
-        },
-      },
-      {
-        $group: {
-          _id: '$_id',
-          name: { $first: '$name' },
-          aggregate_amount: {
-            $sum: { $ifNull: ['$expenses.amount', 0] },
-          },
-        },
-      },
-      { $sort: { aggregate_amount: -1 } },
-    ]);
+    const leadersExpenses = await User.find({},{ name: 1, totalExpense: 1 })
+      .sort({ totalExpense: -1 })
+      .exec();
     res.json(leadersExpenses);
-       
   } catch (err) {
     console.log("Error in fetching leaders data, error: ", JSON.stringify(err));
     res.status(500).json(err.message);
   }
 };
+  
 
 
 
-//@desc: get the report downloaded
+
 const getExpenseReport = async (req, res) => {
   try {
     const usersTbId = req.user.userId;
-    const overAllExpenses = await Expense.find({ usersTbId })
-    if (overAllExpenses.length) {
+    const overAllExpenses = await Expense.find({ usersTbId } )
+    if (overAllExpenses) {
       const stringifiedExpenses = JSON.stringify(overAllExpenses)
 
       const fileName = `expensereport${usersTbId}/${new Date()}.json`;
       const fileUrl = await uploadToS3(stringifiedExpenses, fileName);
       if (fileUrl) {
-        await DownloadedReport.create({ fileUrl, usersTbId });
+        await Downloads.create({ fileUrl, usersTbId });
         return res.status(200).json({ fileUrl, success: true })
       }
     }
@@ -58,7 +41,7 @@ const getExpenseReport = async (req, res) => {
     }
   } catch (err) {
     console.log("Error in fetching expenses data, error: ", err);
-    res.status(500).json({ fileUrl: "", success: false, err });
+    res.status(500).json({ fileUrl: '', success: false, err });
   }
 }
 
@@ -68,8 +51,8 @@ const getExpenseReport = async (req, res) => {
 const showUsersDownloads = async (req, res) => {
   try {
     const usersTbId = req.user.userId;
-    const prevDownloads = await DownloadedReport.find({ usersTbId })
-    if (prevDownloads.length) {
+    const prevDownloads = await Downloads.find({ usersTbId })
+    if (prevDownloads) {
       return res.status(200).json({ prevDownloads, success: true })
     }
     else {

@@ -3,26 +3,27 @@ const bcrypt = require("bcrypt");
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
-function isNotValidInput(string){
-  if(string==undefined || string.length==0){
-      return true;
+
+
+function isNotValidInput(string) {
+  if (string == undefined || string.length == 0) {
+    return true;
   }
-  else{
-      return false;
+  else {
+    return false;
   }
 }
 
 
 //Signup Page Controller
 const createNewUserController = async (req, res) => {
-  try {
-    const { name, email, password } = req.body;
-    if(isNotValidInput(name)||isNotValidInput(email)||isNotValidInput(password)) {
-      return res.status(400).json({ message: "All fields are mandatory" });
-    } else {
-
-      //check if useralready exists
-      const isExistingUser= await User.findOne({email})
+try{
+  const { name, email, password } = req.body;
+  if (isNotValidInput(name) || isNotValidInput(email) || isNotValidInput(password)) {
+    return res.status(400).json({ message: "All fields are mandatory" });
+  }
+  else{
+const isExistingUser= await User.findOne({email})
       if(isExistingUser){
         return res.status(200).send({
         success: true,
@@ -50,20 +51,19 @@ const createNewUserController = async (req, res) => {
 
 
 //function generateAccessToken ...has(payload,secretkey) encrypt payload using secret key
-const generateAccessToken = (id,name,ispremiumuser)=>{
-  return jwt.sign({userId:id, name:name, ispremiumuser},process.env.JWT_SECRET_KEY)
+const generateAccessToken = (id, name, ispremiumuser) => {
+  return jwt.sign({ userId: id, name: name, ispremiumuser }, process.env.JWT_SECRET_KEY)
 }
 
 
 
 //Login Page Controller
-const authenticateUserController = async(req, res) => {
+const authenticateUserController = async (req, res) => {
+  const { email, password } = req.body;
+  if (isNotValidInput(email) || isNotValidInput(password)) {
+    return res.status(400).json({ message: "All fields are mandatory", success: false });
+  }
   try {
-    const { email, password } = req.body;
-    if(isNotValidInput(email)||isNotValidInput(password)) {
-      return res.status(401).json({ message: "All fields are mandatory" ,success:false});
-    }
-
     const user = await User.findOne({ email });
     if (user) {
        bcrypt.compare(password, user.password, (hasherr, hashresponse) => {
@@ -85,7 +85,9 @@ const authenticateUserController = async(req, res) => {
   }
 };
 
-module.exports ={ createNewUserController ,
-  generateAccessToken  ,
+
+module.exports = {
+  createNewUserController,
+  generateAccessToken,
   authenticateUserController
 }

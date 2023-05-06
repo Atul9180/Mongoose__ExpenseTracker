@@ -8,8 +8,9 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 
 
-connectDB();
+
 const app = express();
+connectDB();
 
 
 //middlewares

@@ -1,44 +1,41 @@
-const Expense = require('../model/expensesModel')
+const ExpenseTrackerModel = require('../model/expensesModel')
+const UserModel = require('../model/usersModel')
 
 
+//@desc: to get all expenses
 exports.getAllExpenses = async (req, res) => {
+    const limit = parseInt(req.query.pageLimit) || parseInt(8);
+    const page = parseInt(req.query.page) || parseInt(1);
+    const offset = (page - 1) * limit;
     try {
-        const limit = parseInt(req.query.pageLimit) || parseInt(8);
-        const page = parseInt(req.query.page) || parseInt(1);
-        const offset = (page - 1) * limit;
-
         const [allExpenses, totalRow] = await Promise.all([
-            Expense.find({
+            ExpenseTrackerModel.find({
                 usersTbId: req.user.userId})
                 .limit(limit)
                 .skip(offset)
             ,
-            Expense.find({
+            ExpenseTrackerModel.find({
                 usersTbId: req.user.userId 
             }).countDocuments()
         ]);
         const totalPages = Math.ceil(totalRow / limit);
-
-        res.status(200).json({ allExpenses, totalPages, currentPage: page,totalRow });
+        res.status(200).json({ allExpenses: allExpenses, totalPages, currentPage: page,totalRow });
     } catch (err) {
-        console.log('Error in fetching all expenses record with error: ', JSON.stringify(err));
+        console.log('Error in fetching all expenses record with error: ',err);
         res.status(500).json({ error: err });
     }
 };
 
 
 
-
+//@desc: to get expense by id
 exports.getExpenseById = async (req, res) => {
+    const { id } = req.params;
+    if (!id.trim()) {
+        return res.status(400).json({ error: 'Expense Id of Updated user missing' });
+    }
     try {
-        const { id } = req.params;
-        if (!id.trim()) {
-            return res.status(400).json({ error: 'Expense Id of Updated user missing' });
-        }
-        const expense = await Expense.findOne({
-            _id:id,
-            usersTbId: req.user.userId 
-        });
+        const expense = await ExpenseTrackerModel.findOne({ _id:id, usersTbId: req.user.userId })
         if (!expense) {
             return res.status(404).json({ error: 'Expense not found' });
         }
@@ -51,70 +48,89 @@ exports.getExpenseById = async (req, res) => {
 
 
 
-//addNew Expense Post Request
+//@desc: addNew Expense and update Users's totalExpense
 exports.addNewExpense = async (req, res) => {
-    try {
-        const { amount, description, category, amountType } = req.body;
-        const usersTbId = req.user.userId;
-        if (!amount.trim() || !description.trim() || !category.trim()) { throw new Error('all fields mandatory') }
-        const newExpense = await Expense.create({
-            amount, description, category, amountType, usersTbId
-        })
-        res.status(201).json({ newAddedExpense: newExpense })
-    }
-    catch (err) {
-        console.error(`Error in posting new expense: ${err}`)
-        res.status(err.status || 500).json({ error: err.message || err })
-    }
-}
+  const { amount, description, category, amountType } = req.body;
+  const usersTbId = req.user.userId;
+  
+  if (!amount.trim() || !description.trim() || !category.trim()) {
+    throw new Error('All fields are mandatory');
+  }
+  
+  try {
+    const newExpense = await ExpenseTrackerModel.create(
+      { amount, description, category, amountType, usersTbId });
+    // let newTotal=0;
+    // if (amountType === 'expense') {
+    //   newTotal -=amount;
+    // }
+    // else{
+    //     newTotal +=amount;
+    // }
+    await UserModel.findByIdAndUpdate(usersTbId,{ $inc: { totalExpense: amount } });
+    res.status(201).json({ newAddedExpense: newExpense });
+  } catch (err) {
+    console.error(`Error in posting new expense: ${err}`);
+    res.status(err.status || 500).json({ error: err.message || err });
+  }
+};
 
 
 
 
-//delete Expense
+
+//@desc: delete Expense
 exports.deleteExpense = async (req, res) => {
-    try {
-        const { id } = req.params;
-        if (!id.trim()) {
-            return res.status(400).json({ error: 'Expense Id is missing while deleting.' })
-        }
-        const delres = await Expense.deleteOne({_id:id, usersTbId: req.user.userId } );
-        if (delres.deletedCount === 0) {
-            return res.status(404).json({ error: 'Expense not found' });
-        }
-        res.sendStatus(200)
+    const { id } = req.params;
+    const { expAmount, expType } = req.query;
+    if (!id.trim()) {
+        return res.status(400).json({ error: 'Expense Id is missing while deleting.' })
     }
-    catch (err) {
+    try {
+        const delres = await ExpenseTrackerModel.findOneAndDelete({ _id:id, usersTbId: req.user.userId } );
+        if(!delres){
+            return res.status(404).json({ error: 'Expense not found' });
+        }        
+        await UserModel.findByIdAndUpdate({ _id: req.user.userId },{ $inc: { totalExpense: -expAmount } });
+        return res.sendStatus(200);
+    } catch (err) {
         console.error(`Error in deleting expense: ${err}`);
-        res.status(500).json({ error: err.message || err })
+        res.status(500).json({ error: err.message || err });
     }
 }
 
 
-
-
-//update expense
+//@desc: update expense
 exports.updateExpense = async (req, res) => {
+    const { amount, description, category, amountType, changedAmount, expType } = req.body;
+    const { id } = req.params;
+    if (!id.trim()) {
+        return res.status(400).json({ error: 'Expense Id is missing for update.' })
+    }
+    if (!amount.trim() || !description || !category) {
+        throw new Error('all fields mandatory')
+    }
     try {
-        const { amount, description, category, amountType } = req.body;
-        const { id } = req.params;
-        if (!id.trim()) { return res.status(400).json({ error: 'Expense Id is missing for update.' }) }
-        if (!amount.trim() || !description || !category) { throw new Error('all fields mandatory') }
-        const result = await Expense.findOneAndUpdate(
-            {_id:id,usersTbId: req.user.userId},
-            {amount, description, category, amountType },
-            {new:true}         
-        );
-        if (!result) {
-            return res.status(404).json({ error: 'Expense not found' });
+        const updatedExpense =await ExpenseTrackerModel.findOneAndUpdate({ _id:id, usersTbId: req.user.userId },{ amount, description, category, amountType }, { new: true });
+       
+        if(!updatedExpense){
+            return res.status(404).json({error:"Expense not found"})
         }
-        res.sendStatus(200)
+
+        const user =await UserModel.findOne({ _id: req.user.userId });
+        if (expType === 'expense') {
+            user.totalExpense += parseInt(changedAmount);
+            await user.save();
+        }
+        res.sendStatus(200);
     }
     catch (err) {
         console.error(`Error in updating expense: ${err}`);
-        res.status(err.status || 500).json({ error: err.message || err })
-    }
+        res.status(err.status || 500).json({ error: err.message || err });
+  } 
 }
+
+
 
 
 

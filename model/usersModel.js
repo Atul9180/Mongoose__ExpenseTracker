@@ -6,10 +6,12 @@ const userSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     ispremiumuser: { type:Boolean, default: false },
+    totalExpense:{type:Number,required:true,default:0}
   },
   { timestamps: true }
 );
 
 // export default mongoose.model("users_tb", userSchema);
 const User = mongoose.model("User", userSchema);
+
 module.exports = User;

@@ -1,10 +1,6 @@
 const mongoose = require("mongoose");
 
 const ForgotPasswordSchema = new mongoose.Schema({
-  
-  id: {
-    type: String,
-  },
   active: {
     type:Boolean,
   },
