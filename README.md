@@ -5,7 +5,7 @@ Full Stack Expense Tracker project from scratch with the features of forgot pass
 ![ProjectDemo](https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMGJiMzFiZjhjMzk5MTE2MTdjZjA2MzAwM2ZhYjE2MmUxZTg1YTlkZCZlcD12MV9pbnRlcm5hbF9naWZzX2dpZklkJmN0PWc/OmU9vmgAhikQfuIj9w/giphy.gif)
 
 ## Tech Stack:
-Nodejs , Express Framework , Mysql Db, Sequelize ORM
+Nodejs , Express Framework , MongoDb, Mongoose ODM, AWS S3 Bucket
 
 # To Run Project in your machine :
 1. Clone this reposoitory.
