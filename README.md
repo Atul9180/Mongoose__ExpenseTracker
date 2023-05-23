@@ -7,18 +7,25 @@ Full Stack Expense Tracker project from scratch with the features of forgot pass
 ## Tech Stack:
 Nodejs , Express Framework , MongoDb, Mongoose ODM, AWS S3 Bucket
 
-# To Run Project in your machine :
-1. Clone this reposoitory.
-2. Open .env file and fill the credentials required for project.
-3. Initialize the project: npm i
-4. Run project:  npm start
+## Installation
+1. Clone the repository:
+   ```shell
+   git clone https://github.com/Atul9180/Mongoose__ExpenseTracker.git
+2. Navigate to the project directory:
+    ```shell
+    cd Mongoose__ExpenseTracker
+3. Install the dependencies:
+    ```shell
+    npm install
+4. Start the development serve:
+    ```shell
+    npm run dev
 
-## Tip: 
-install nodemon for auto restart of project so as you need not to restart server after each change.
-To install and run nodemon: npm run dev
+## MYSql Version of this Project: 
+An Alternate Version of the Expense Tracker was developed, utilizing MongoDB as the MySQL database and Sequelize ORM for seamless integration. This version retains all the features of the NoSql-based version. 
+Url: https://github.com/Atul9180/ExpenseTracker_Sequelize/tree/Updated-UI-with-Additional-features
 
-## MYSql Version of this Project:
-https://github.com/Atul9180/ExpenseTracker_Sequelize/tree/Updated-UI-with-Additional-features
+
 
 ## Impact on Society:
 The Expense Tracker web application brings significant value to individuals and society as a whole by promoting financial awareness, budgeting, and responsible spending. It empowers users to gain control over their expenses, make informed financial decisions, and develop healthy financial habits. By providing a convenient and secure platform, the application aims to improve financial literacy and contribute to individuals' overall financial well-being.
